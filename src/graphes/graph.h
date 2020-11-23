@@ -13,7 +13,7 @@
 template <class T>
 class Graph {
 public:
-	Graph(std::vector<std::vector<size_t>> adj_list);
+	Graph(std::vector<std::vector<size_t>>& adj_list);
 	~Graph();
 
 private:
@@ -52,7 +52,7 @@ public:
 
 
 template <class T>
-Graph<T>::Graph(std::vector<std::vector<size_t>> adj_list) {
+Graph<T>::Graph(std::vector<std::vector<size_t>>& adj_list) {
 
 	cusparseCreateMatDescr(&descr);
 	cusparseSetMatDiagType(descr, CUSPARSE_DIAG_TYPE_NON_UNIT);
@@ -64,12 +64,10 @@ Graph<T>::Graph(std::vector<std::vector<size_t>> adj_list) {
 	num_nodes = adj_list.size();
 	std::vector<float> degrees(num_nodes);
 	num_edges = 0;
-	std::cout << "degrees" << std::endl;
 	for (int i = 0; i < num_nodes; ++i) {
 		std::sort(adj_list[i].begin(), adj_list[i].end());
 		degrees[i] = adj_list[i].size();
 		degrees[i] = pow(degrees[i], -0.5f);
-		std::cout << degrees[i] << std::endl;
 		num_edges += adj_list[i].size();
 		bool found = false;
 		for (int j = 0; j < adj_list[i].size(); ++j) {
@@ -113,12 +111,7 @@ Graph<T>::Graph(std::vector<std::vector<size_t>> adj_list) {
 			++k;
 		}
 	}
-	std::cout << num_edges << " " << k << std::endl;
 
-	for (int i = 0; i < num_edges; ++i) {
-		std::cout << adj_matrix[i] << " ";
-	}
-	std::cout << std::endl;
 
 	rowIndices[num_nodes] = num_edges;
 
