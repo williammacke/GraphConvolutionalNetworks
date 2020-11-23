@@ -1,5 +1,7 @@
 #include "linAlg/matrix.h"
+#include "graphes/graph.h"
 #include <iostream>
+#include <vector>
 
 struct addTwo {
 	__host__ __device__
@@ -89,6 +91,45 @@ int main() {
 
 
 
+	std::vector<std::vector<size_t>> adj_list = {{1}, {0,2}, {1}};
+
+	Graph<float> g(adj_list);
+
+	Matrix<float> e(3, 3);
+	float data3[] = {1,1,0,0,1,0,0,0,1};
+	e.setValues(data3);
+	Matrix<float> f(3, 3);
+
+	cusparseHandle_t sparseHandle;
+	cusparseCreate(&sparseHandle);
+
+	
+	sparseMatMul(sparseHandle, g, e, f);
+	cudaMemcpy(data3, f.getData(), 9*sizeof(float), cudaMemcpyDeviceToHost);
+	std::cout << data3[0] << " " <<  data3[1] << " " << data3[2] << " " << data3[3] << " " << data3[4] << " " << data3[5] << " " << data3[6] << " " << data3[7] << " " << data3[8] << std::endl;
+
+
+	Matrix<float> m1(2, 3);
+	Matrix<float> m2(3, 4);
+	Matrix<float> m3(2, 4);
+
+	float data_m1[] = {1, 2, 3, 1, 2, 3};
+	m1.setValues(data_m1);
+
+	float data_m2[] = {1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4};
+	m2.setValues(data_m2);
+
+
+
+	float data_m4[8];
+
+	matMul(handle, m1, m2, m3);
+	cudaMemcpy(data_m4, m3.getData(), 8*sizeof(float), cudaMemcpyDeviceToHost);
+	std::cout << data_m4[0] << " " <<  data_m4[1] << " " << data_m4[2] << " " << data_m4[3] << " " << data_m4[4] << " " << data_m4[5] << " " << data_m4[6] << " " << data_m4[7] << std::endl;
+	
+
+
 	cublasDestroy(handle);
+	cusparseDestroy(sparseHandle);
 	return 0;
 }
