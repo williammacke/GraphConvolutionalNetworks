@@ -13,7 +13,8 @@ class GCNLayer {
 public:
 	GCNLayer(std::string name, size_t num_nodes, size_t num_inputs, size_t num_outputs, const Op& op, const I& init) : name(name), W(num_inputs, num_outputs), 
 	B(num_nodes, num_outputs), d(num_nodes, num_outputs), init(init), op(op),
-       XA(num_nodes, num_inputs), out(num_nodes, num_outputs)	{
+       XA(num_nodes, num_inputs), out(num_nodes, num_outputs),
+	grad(num_inputs, num_outputs), next(num_nodes, num_inputs){
 		init.initialize(W, num_nodes, num_inputs, num_outputs);
 		init.initialize(B, num_nodes, num_inputs, num_outputs);
 	}
@@ -28,12 +29,24 @@ public:
 		return out;
 	}
 
-	Matrix<float>& backward(cublasHandle_t handle, const Matrix<float>& in, Matrix<float>& out, Matrix<float>& grad) {
+	Matrix<float>& backward(cublasHandle_t handle, const Matrix<float>& in) {
 		op.derivative(d);
 		matElementMul(in, d, d);
 		matMul(handle, XA, d, grad, true);
-		matMul(handle, d, W, out, false, true);
+		matMul(handle, d, W, next, false, true);
 		return grad;
+	}
+
+	Matrix<float>& getOut() {
+		return out;
+	}
+
+	Matrix<float>& getNext() {
+		return next;
+	}
+
+	Matrix<float>& getD() {
+		return d;
 	}
 
 
@@ -42,6 +55,7 @@ private:
 	Matrix<float> W;
 	Matrix<float> B;
 	Matrix<float> XA, out, d;
+	Matrix<float> grad, next;
 	I init;
 	Op op;
 };
