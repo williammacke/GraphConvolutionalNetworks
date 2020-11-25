@@ -110,6 +110,27 @@ Matrix<T>& matElementMul(const Matrix<T>& A, const Matrix<T>& B, Matrix<T>& out)
 	return out;
 }
 
+template <class T>
+__global__ void rowWiseMul(const T* data1, const T* data2, T* out, size_t r, size_t c) {
+	int idx = threadIdx.x+blockDim.x*blockIdx.x;
+	int rowidx = idx%c;
+	size_t total = r*c;
+	if (idx < total) {
+		out[idx] = data1[idx] * data2[rowidx];
+	}
+}
+
+template <class T>
+__global__ void rowWiseDiv(const T* data1, const T* data2, T* out, size_t r, size_t c) {
+	int idx = threadIdx.x+blockDim.x*blockIdx.x;
+	int rowidx = idx%c;
+	size_t total = r*c;
+	if (idx < total) {
+		out[idx] = data1[idx] / data2[rowidx];
+	}
+}
+
+
 template <class T, class Op>
 __global__ void elementWiseApply(const T* data, T* out, size_t n, const Op& op) {
 	int idx = threadIdx.x+blockDim.x*blockIdx.x;

@@ -25,12 +25,12 @@ public:
 		sparseMatMul(sHandle, g, in, XA);
 		matMul_Add(bHandle, XA, W, B, d);
 		out.gpuSetValues(d);
-		op(out);
+		op(bHandle, out);
 		return out;
 	}
 
 	Matrix<float>& backward(cublasHandle_t handle, const Matrix<float>& in) {
-		op.derivative(d);
+		op.derivative(handle, out, d);
 		matElementMul(in, d, d);
 		matMul(handle, XA, d, grad, true);
 		matMul(handle, d, W, next, false, true);
