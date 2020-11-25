@@ -49,6 +49,14 @@ public:
 		return d;
 	}
 
+	Matrix<float>& getW() {
+		return W;
+	}
+	
+	Matrix<float>& getB() {
+		return B;
+	}
+
 
 private:
 	std::string name;

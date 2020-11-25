@@ -3,6 +3,7 @@
 
 #include <random>
 #include <chrono>
+#include "linAlg/matrix.h"
 
 struct random_normal_init {
 	const float mean;
