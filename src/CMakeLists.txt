@@ -4,7 +4,14 @@ add_library(gcn STATIC
 	linAlg/matrix.h
 	linAlg/matrix.cu
 	graphes/graph.h
-	graphes/graph.cu)
+	graphes/graph.cu
+	layers/graph_conv.h
+	layers/network.h
+	functions/activations.h
+	functions/activations.cu
+	functions/loss.h
+	functions/loss.cu
+	optimization/gradient_descent.h)
 
 target_compile_features(gcn PUBLIC cxx_std_11)
 target_include_directories(gcn PUBLIC ./)

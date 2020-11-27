@@ -12,3 +12,5 @@ float* softmax::ones = nullptr;
 float* softmax::sum = nullptr;
 scalar_exp softmax::sexp = {};
 dsoftmax softmax::ds = {};
+
+addE softmax::ae = {};

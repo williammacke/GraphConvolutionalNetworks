@@ -54,8 +54,14 @@ public:
 template <class T>
 Graph<T>::Graph(std::vector<std::vector<size_t>>& adj_list) {
 
-	cusparseCreateMatDescr(&descr);
-	cusparseSetMatDiagType(descr, CUSPARSE_DIAG_TYPE_NON_UNIT);
+	auto errs = cusparseCreateMatDescr(&descr);
+	if (errs) {
+		throw errs;
+	}
+	errs = cusparseSetMatDiagType(descr, CUSPARSE_DIAG_TYPE_NON_UNIT);
+	if (errs) {
+		throw errs;
+	}
 
 	//descr.MatrixType = CUSPARSE_MATRIX_TYPE_GENERAL;
 	//descr.DiagType = CUSPARSE_DIAG_TYPE_NON_UNIT;
@@ -66,8 +72,6 @@ Graph<T>::Graph(std::vector<std::vector<size_t>>& adj_list) {
 	num_edges = 0;
 	for (int i = 0; i < num_nodes; ++i) {
 		std::sort(adj_list[i].begin(), adj_list[i].end());
-		degrees[i] = adj_list[i].size();
-		degrees[i] = pow(degrees[i], -0.5f);
 		num_edges += adj_list[i].size();
 		bool found = false;
 		for (int j = 0; j < adj_list[i].size(); ++j) {
@@ -77,12 +81,28 @@ Graph<T>::Graph(std::vector<std::vector<size_t>>& adj_list) {
 			}
 		}
 		if (!found) {
+			degrees[i] = (adj_list[i].size()+1);
+			degrees[i] = pow(degrees[i], -0.5f);
 			num_edges++;
 		}
+		else {
+			degrees[i] = (adj_list[i].size());
+			degrees[i] = pow(degrees[i], -0.5f);
+		}
 	}
+	for (int i = 0; i < num_nodes; ++i) {
+		std::cout << i << std::endl;
+		for (int j = 0; j < adj_list[i].size(); ++j) {
+			std::cout << adj_list[i][j] << " ";
+		}
+		std::cout << std::endl;
+		std::cout << degrees[i] << std::endl;
+	}
+	std::cin.get();
 	float* adj_matrix = new float[num_edges];
 	int* rowIndices = new int[num_nodes+1];
 	int* colIndices = new int[num_edges];
+	std::cout << num_edges << std::endl;
 	int k = 0;
 	for (int i = 0; i < num_nodes; ++i) {
 		bool found = false;
@@ -112,16 +132,39 @@ Graph<T>::Graph(std::vector<std::vector<size_t>>& adj_list) {
 		}
 	}
 
+	for (int i = 0; i < num_edges; ++i) {
+		std::cout << adj_matrix[i] << " ";
+	}
+	std::cout << std::endl;
+
 
 	rowIndices[num_nodes] = num_edges;
 
-	cudaMalloc(&data, num_edges*sizeof(T));
-	cudaMalloc(&rowInd, (num_nodes+1)*sizeof(int));
-	cudaMalloc(&colInd, num_edges*sizeof(int));
+	auto err = cudaMalloc(&data, num_edges*sizeof(T));
+	if (err) {
+		throw err;
+	}
+	err = cudaMalloc(&rowInd, (num_nodes+1)*sizeof(int));
+	if (err) {
+		throw err;
+	}
+	err = cudaMalloc(&colInd, num_edges*sizeof(int));
+	if (err) {
+		throw err;
+	}
 
-	cudaMemcpy(data, adj_matrix, sizeof(T)*num_edges, cudaMemcpyHostToDevice);
-	cudaMemcpy(rowInd, rowIndices, sizeof(int)*(num_nodes+1), cudaMemcpyHostToDevice);
-	cudaMemcpy(colInd, colIndices, sizeof(int)*num_edges, cudaMemcpyHostToDevice);
+	err = cudaMemcpy(data, adj_matrix, sizeof(T)*num_edges, cudaMemcpyHostToDevice);
+	if (err) {
+		throw err;
+	}
+	err = cudaMemcpy(rowInd, rowIndices, sizeof(int)*(num_nodes+1), cudaMemcpyHostToDevice);
+	if (err) {
+		throw err;
+	}
+	err = cudaMemcpy(colInd, colIndices, sizeof(int)*num_edges, cudaMemcpyHostToDevice);
+	if (err) {
+		throw err;
+	}
 
 	delete[] adj_matrix;
 	delete[] rowIndices;

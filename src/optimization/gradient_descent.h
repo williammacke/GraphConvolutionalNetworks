@@ -10,10 +10,9 @@ struct gradient_descent_optimizer {
 	gradient_descent_optimizer(float lr) : lr(lr) { }
 	template <class I, class Op>
 	void optimize(cusparseHandle_t sHandle, cublasHandle_t bHandle,
-			GCNLayer<I, Op>& layer, const Matrix<float>& d) {
-		Matrix<float>& grad = layer.backward(bHandle, d);
+			GCNLayer<I, Op>& layer, const Matrix<float>& d, const Graph<float>& g) {
+		Matrix<float>& grad = layer.backward(sHandle, bHandle, d, g);
 		add(bHandle, grad, layer.getW(), lr);
-		add(bHandle, layer.getD(), layer.getB(), lr);
 
 	}
 };

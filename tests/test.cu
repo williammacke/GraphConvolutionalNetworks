@@ -1,5 +1,6 @@
 #include "linAlg/matrix.h"
 #include "graphes/graph.h"
+#include "layers/graph_conv.h"
 #include <iostream>
 #include <vector>
 
@@ -22,8 +23,6 @@ int main() {
 	b.setValues(data);
 	c.setValues(data2);
 	float blargh = 0.0f;
-	cudaMemcpy(&blargh, Matrix<float>::one, sizeof(float),cudaMemcpyDeviceToHost );
-	std::cout << blargh <<std::endl;
 
 
 	cudaMemcpy(data2, a.getData(), 4*sizeof(float), cudaMemcpyDeviceToHost);
@@ -33,7 +32,6 @@ int main() {
 	std::cout << data2[0] << data2[1] << data2[2] << data2[3] << std::endl;
 	cudaMemcpy(data2, c.getData(), 4*sizeof(float), cudaMemcpyDeviceToHost);
 	std::cout << data2[0] << data2[1] << data2[2] << data2[3] << std::endl;
-	std::cout << Matrix<float>::one << std::endl;
 	
 
 

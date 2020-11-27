@@ -1,37 +1,47 @@
 #ifndef LOSS_H_
 #define LOSS_H_
 #include "linAlg/matrix.h"
-#include "functions.activations.h"
+#include "functions/activations.h"
 #include <math.h>
 
+struct oneSubE {
+	__host__ __device__
+	float operator()(const float x) const {
+		return 1-x+epsilon;
+	}
+};
+
+
 struct dcross_entropy_with_logits {
+	static oneSubE ose;
 	static oneSub os;
+	static addE ae;
 	template <class T>
-	Matrix<T>& operator()(cublasHandle_t handle, const Matrix<T>& y, const Matrix<T>& y_, Matrix<T>& out, float* tmp1, float* ones) {
+	Matrix<T>& operator()(cublasHandle_t handle, const Matrix<T>& y, const Matrix<T>& y_, Matrix<T>& out, float* tmp1, float* ones) const {
 		size_t n = y.getN()*y.getM();
 		elementWiseApply<<<(n+TPB-1)/TPB, TPB>>>(y.getData(), tmp1, n, os);
 
-		elementWiseApply<<<(n+TPB-1)/TPB, TPB>>>(y_.getData(), out.getData(), n, os);
-		elementWiseMul<<<(n+TPB-1)/TPB, TPB>>>(tmp1, out.getData(), out.getData(), n);
+		elementWiseApply<<<(n+TPB-1)/TPB, TPB>>>(y_.getData(), out.getData(), n, ose);
+		elementWiseDiv<<<(n+TPB-1)/TPB, TPB>>>(tmp1, out.getData(), out.getData(), n);
 
-		elementWiseMul<<<(n+TPB-1)/TPB, TPB>>>(y.getData(), y_.getData, tmp, n);
+		elementWiseApply<<<(n+TPB-1)/TPB, TPB>>>(y_.getData(), tmp1, n, ae);
+		elementWiseDiv<<<(n+TPB-1)/TPB, TPB>>>(y.getData(), tmp1, tmp1, n);
 		float alpha = 1.0f;
 		float beta = 0.0f;
 		cublasSaxpy(handle, n, &alpha, tmp1, 1, out.getData(), 1);
 		cublasSgemv(handle, CUBLAS_OP_N, y.getN(), y.getM(),
 				&alpha, y.getData(), y.getN(),
 				ones, 1, &beta, tmp1, 1);
-		rowWiseMul<<<(n+TPB-1)/TPB, TPB>>>(out.getData(), tmp1, out.getData(), out.getN(), out.getM());
+		//rowWiseMul<<<(n+TPB-1)/TPB, TPB>>>(out.getData(), tmp1, out.getData(), out.getN(), out.getM());
 		return out;
 	}
-}
+};
 
 
 struct scalar_log {
-	static float epsilon;
 template <class T>
 	__host__ __device__
-	T operator()(const T& x) {
+	T operator()(const T& x) const {
 		return log(x+epsilon);
 	}
 };
@@ -47,17 +57,22 @@ struct cross_entropy_with_logits {
 	static scalar_log sl;
 	static oneSub os;
 	static dcross_entropy_with_logits dc;
-	template <class T>
 	void reallocOnes(size_t nCap) {
 		if (ones != nullptr) {
 			cudaFree(ones);
 		}
-		cudaMalloc(&ones, nCap);
+		auto err = cudaMalloc(&ones, nCap*sizeof(float));
+		if (err) {
+			throw err;
+		}
 		float* hOnes = new float[nCap];
 		for (int i = 0; i < nCap; ++i) {
 			hOnes[i] = 1;
 		}
-		cudaMemcpy(ones, hOnes, sizeof(float)*nCap, cudaMemcpyHostToDevice);
+		err = cudaMemcpy(ones, hOnes, sizeof(float)*nCap, cudaMemcpyHostToDevice);
+		if (err) {
+			throw err;
+		}
 		cap_ones = nCap;
 		delete[] hOnes;
 	}
@@ -65,7 +80,10 @@ struct cross_entropy_with_logits {
 		if (tmp != nullptr) {
 			cudaFree(tmp);
 		}
-		cudaMalloc(&tmp, nCap);
+		auto err = cudaMalloc(&tmp, nCap*sizeof(float));
+		if (err) {
+			throw err;
+		}
 		cap_tmp = nCap;
 	}
 
@@ -73,9 +91,13 @@ struct cross_entropy_with_logits {
 		if (tmp2 != nullptr) {
 			cudaFree(tmp2);
 		}
-		cudaMalloc(&tmp2, nCap);
+		auto err = cudaMalloc(&tmp2, nCap*sizeof(float));
+		if (err) {
+			throw err;
+		}
 		cap_tmp2 = nCap;
 	}
+	template <class T>
 	T operator()(cublasHandle_t handle, const Matrix<T>& y, const Matrix<T>& y_) {
 		//TODO: Implement
 		size_t n = y.getN()*y.getM();
@@ -89,9 +111,9 @@ struct cross_entropy_with_logits {
 			reallocOnes(y_.getN());
 		}
 
-		elementWiseAppy<<<(n+TPB-1)/TPB, TPB>>>(y_.getData(), tmp, n, os);
+		elementWiseApply<<<(n+TPB-1)/TPB, TPB>>>(y_.getData(), tmp, n, os);
 		elementWiseApply<<<(n+TPB-1)/TPB, TPB>>>(tmp, tmp, n, sl);
-		elementWiseAppy<<<(n+TPB-1)/TPB, TPB>>>(y.getData(), tmp2, n, os);
+		elementWiseApply<<<(n+TPB-1)/TPB, TPB>>>(y.getData(), tmp2, n, os);
 		elementWiseApply<<<(n+TPB-1)/TPB, TPB>>>(tmp2, tmp2, n, sl);
 		elementWiseMul<<<(n+TPB-1)/TPB, TPB>>>(tmp, tmp2, tmp, n);
 
@@ -101,7 +123,7 @@ struct cross_entropy_with_logits {
 
 		float alpha=1.0f;
 		float beta=0.0f;
-		cublasSaxpy(handle, n, &alpha, tmp2, 1 tmp, 1);
+		cublasSaxpy(handle, n, &alpha, tmp2, 1, tmp, 1);
 
 		cublasSgemv(handle, CUBLAS_OP_N, y.getN(), y.getM(), &alpha, tmp, y_.getN(), ones, 1, &beta, tmp2, 1);
 		cublasSgemv(handle, CUBLAS_OP_N, y.getN(), y.getM(), &alpha, y.getData(), y_.getN(), ones, 1, &beta, tmp, 1);
@@ -109,7 +131,10 @@ struct cross_entropy_with_logits {
 
 		cublasSdot(handle, y.getN(), ones, 1, tmp, 1, tmp2);
 		float result;
-		cudaMemcpy(&result, tmp2, sizeof(float), cudaMemcpyDeviceToHost);
+		auto err = cudaMemcpy(&result, tmp2, sizeof(float), cudaMemcpyDeviceToHost);
+		if (err) {
+			throw err;
+		}
 		return result;
 	}
 
