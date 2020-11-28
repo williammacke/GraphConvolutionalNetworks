@@ -187,6 +187,6 @@ Graph<T>::~Graph() {
 }
 
 
-Matrix<float>& sparseMatMul(cusparseHandle_t handle, const Graph<float>& A, const Matrix<float>& B, Matrix<float>& out);
+Matrix<float>& sparseMatMul(cusparseHandle_t handle, const Graph<float>& A, const Matrix<float>& B, Matrix<float>& out, bool transA = false);
 
 #endif

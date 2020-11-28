@@ -1,7 +1,7 @@
 #include "graphes/graph.h"
 
 
-Matrix<float>& sparseMatMul(cusparseHandle_t handle, const Graph<float>& A, const Matrix<float>& B, Matrix<float>& out) {
+Matrix<float>& sparseMatMul(cusparseHandle_t handle, const Graph<float>& A, const Matrix<float>& B, Matrix<float>& out, bool transA) {
 	float alpha = 1.0f;
 	float beta = 0.0f;
 	/*
@@ -20,7 +20,8 @@ Matrix<float>& sparseMatMul(cusparseHandle_t handle, const Graph<float>& A, cons
 		throw err;
 	}
 	*/
-	auto err = cusparseScsrmm(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+	auto opA = transA?CUSPARSE_OPERATION_TRANSPOSE:CUSPARSE_OPERATION_NON_TRANSPOSE;
+	auto err = cusparseScsrmm(handle, opA,
 			A.getNumNodes(), B.getM(), A.getNumNodes(),
 			A.getNumEdges(), &alpha, A.getDescr(),
 			A.getData(), A.getRowInd(), A.getColInd(),
