@@ -17,13 +17,13 @@ int main() {
 	cusparseCreate(&sparseHandle);
 
 
-	std::vector<std::vector<size_t>> adj_list = {{0}, {1}, {2}};
-	Graph<float> g(adj_list);
+	std::vector<std::vector<size_t>> adj_list = {{}, {2}, {1}};
+	Graph<float> g(adj_list, sparseHandle);
 	
 	float labels[] = {1, 0, 0, 0, 1, 1};
 
-	GCNLayer<random_normal_init, relu> layer1("l1", 3, 2, 2, relu(), random_normal_init(0, 1));
-	GCNLayer<random_normal_init, softmax> layer2("l2", 3, 2, 2, softmax(), random_normal_init(0, 0.5));
+	GCNLayer<random_normal_init, relu> layer1("l1", 3, 2, 2, relu(), random_normal_init(0, 0.01));
+	GCNLayer<random_normal_init, softmax> layer2("l2", 3, 2, 2, softmax(), random_normal_init(0, 0.01));
 
 	//Network<cross_entropy_with_logits, gradient_descent_optimizer, GCNLayer<random_normal_init, relu>, GCNLayer<random_normal_init, softmax>> network(3, 2, {}, gradient_descent_optimizer(0.01f), handle, sparseHandle, layer1, layer2);
 	Network<cross_entropy_with_logits, gradient_descent_optimizer,  GCNLayer<random_normal_init, softmax>> network(3, 2, {}, gradient_descent_optimizer(0.1f), handle, sparseHandle, layer2);

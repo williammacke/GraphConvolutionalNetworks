@@ -91,15 +91,16 @@ int main() {
 
 	std::vector<std::vector<size_t>> adj_list = {{1}, {0,2}, {1}};
 
-	Graph<float> g(adj_list);
+
+	cusparseHandle_t sparseHandle;
+	cusparseCreate(&sparseHandle);
+
+	Graph<float> g(adj_list, sparseHandle);
 
 	Matrix<float> e(3, 3);
 	float data3[] = {1,1,0,0,1,0,0,0,1};
 	e.setValues(data3);
 	Matrix<float> f(3, 3);
-
-	cusparseHandle_t sparseHandle;
-	cusparseCreate(&sparseHandle);
 
 	
 	sparseMatMul(sparseHandle, g, e, f);

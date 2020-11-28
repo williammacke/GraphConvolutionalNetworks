@@ -71,7 +71,7 @@ int main() {
 	Matrix<float> features(numPapers, numWords);
 	features.setValues(data);
 
-	Graph<float> g(adj_list);
+	Graph<float> g(adj_list, sparseHandle);
 	std::cin.get();
 
 	GCNLayer<random_normal_init, relu> layer1("l1", numPapers, numWords, 100, relu(),

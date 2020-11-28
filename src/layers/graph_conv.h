@@ -33,13 +33,16 @@ public:
 			const Graph<float>& g, const Matrix<float>& in) {
 		//XA.gpuSetValues(in.getData());
 		sparseMatMul(sHandle, g, in, XA);
-		std::cout << name << std::endl;
-		std::cout << "forward" << std::endl;
-		printMat(in);
+		cudaDeviceSynchronize();
+		//std::cout << name << std::endl;
+		//std::cout << "forward" << std::endl;
+		//printMat(in);
+		std::cout << "test1" << std::endl;
 		matMul(bHandle, XA, W, d);
+		cudaDeviceSynchronize();
 		out.gpuSetValues(d.getData());
 		op(bHandle, out);
-		printMat(out);
+		//printMat(out);
 		return out;
 	}
 

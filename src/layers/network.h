@@ -40,28 +40,32 @@ public:
 
 	void train(size_t num_epochs, const Matrix<float>& in) {
 		constexpr size_t last = (sizeof...(Layers))-1;
+		constexpr size_t current = last==0?0:last-1;
 		for (int i = 0; i < num_epochs; ++i) {
 			result(in);
 			//std::cout << "train layer " << last << std::endl;
 			loss.derivative(bhandle, y, std::get<last>(layers).getOut(), ld);
 			trainer.optimize(shandle, bhandle, std::get<last>(layers), ld, *g);
-			if (last > 0) {
-				//train_helper<last-1>(in);
-			}
+			train_helper<current>(in);
 		}
 	}
 
 	template <size_t I>
-	typename std::enable_if<0 < I && sizeof...(Layers) != 1, void>::type train_helper(const Matrix<float>& in) {
+	typename std::enable_if<(0 < I) && sizeof...(Layers) != 1, void>::type train_helper(const Matrix<float>& in) {
 		//std::cout << "train layer " << I << std::endl;
 		trainer.optimize(shandle, bhandle, std::get<I>(layers), std::get<I+1>(layers).getNext(), *g);
 		train_helper<I-1>(in);
 	}
 
 	template <size_t I>
-	typename std::enable_if<I == 0, void>::type train_helper(const Matrix<float>& in) {
+	typename std::enable_if<I == 0 && sizeof...(Layers) != 1, void>::type train_helper(const Matrix<float>& in) {
 		//std::cout << "train layer " << I << std::endl;
 		trainer.optimize(shandle, bhandle, std::get<I>(layers), std::get<I+1>(layers).getNext(), *g);
+	}
+	template <size_t I>
+	typename std::enable_if<I == 0 && sizeof...(Layers) == 1, void>::type train_helper(const Matrix<float>& in) {
+		//std::cout << "train layer " << I << std::endl;
+		//trainer.optimize(shandle, bhandle, std::get<I>(layers), std::get<I+1>(layers).getNext(), *g);
 	}
 
 	void setLabels(float* labels) {

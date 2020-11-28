@@ -101,6 +101,7 @@ Matrix<T>& matElementMul(const Matrix<T>& A, const Matrix<T>& B, Matrix<T>& out)
 	size_t n = A.getN()*A.getM();
 
 	elementWiseMul<<<(n+TPB-1)/TPB, TPB>>>(A.getData(), B.getData(), out.getData(), n);
+	cudaDeviceSynchronize();
 	return out;
 }
 
@@ -143,6 +144,7 @@ Matrix<T>& matApply(const Matrix<T>& A, Matrix<T>& out, const Op& op) {
 	std::cout << (n+TPB-1)/TPB << " " << TPB << std::endl;
 
 	elementWiseApply<<<(n+TPB-1)/TPB, TPB>>>(A.getData(), out.getData(), n, op);
+	cudaDeviceSynchronize();
 	return out;
 }
 

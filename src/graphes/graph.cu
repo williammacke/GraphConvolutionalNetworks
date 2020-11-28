@@ -9,5 +9,10 @@ Matrix<float>& sparseMatMul(cusparseHandle_t handle, const Graph<float>& A, cons
 			A.getNumNodes(), A.getNumEdges(), &alpha, A.getDescr(), A.getData(),
 			A.getRowInd(), A.getColInd(), 1, B.getData(), B.getN(), &beta, 
 			out.getData(), out.getN());
+	auto err = cudaDeviceSynchronize();
+	if (err) {
+		std::cout << "graph mult error: " << err << std::endl;
+		throw err;
+	}
 	return out;
 }

@@ -26,7 +26,9 @@ struct dcross_entropy_with_logits {
 
 		elementWiseApply<<<(n+TPB-1)/TPB, TPB>>>(y_.getData(), tmp1, n, ae);
 		elementWiseDiv<<<(n+TPB-1)/TPB, TPB>>>(y.getData(), tmp1, tmp1, n);
-		float alpha = 1.0f;
+		float alpha = -1;
+		cublasSscal(handle, n, &alpha, tmp1, 1);
+		alpha = 1.0f;
 		float beta = 0.0f;
 		cublasSaxpy(handle, n, &alpha, tmp1, 1, out.getData(), 1);
 		cublasSgemv(handle, CUBLAS_OP_N, y.getN(), y.getM(),

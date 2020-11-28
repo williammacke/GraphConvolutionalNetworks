@@ -13,7 +13,7 @@
 template <class T>
 class Graph {
 public:
-	Graph(std::vector<std::vector<size_t>>& adj_list);
+	Graph(std::vector<std::vector<size_t>>& adj_list, cusparseHandle_t handle);
 	~Graph();
 
 private:
@@ -52,13 +52,12 @@ public:
 
 
 template <class T>
-Graph<T>::Graph(std::vector<std::vector<size_t>>& adj_list) {
+Graph<T>::Graph(std::vector<std::vector<size_t>>& adj_list, cusparseHandle_t handle) {
 
 	auto errs = cusparseCreateMatDescr(&descr);
 	if (errs) {
 		throw errs;
-	}
-	errs = cusparseSetMatDiagType(descr, CUSPARSE_DIAG_TYPE_NON_UNIT);
+	} errs = cusparseSetMatDiagType(descr, CUSPARSE_DIAG_TYPE_NON_UNIT);
 	if (errs) {
 		throw errs;
 	}
@@ -73,6 +72,8 @@ Graph<T>::Graph(std::vector<std::vector<size_t>>& adj_list) {
 	for (int i = 0; i < num_nodes; ++i) {
 		std::sort(adj_list[i].begin(), adj_list[i].end());
 		num_edges += adj_list[i].size();
+		degrees[i] = (adj_list[i].size()+1);
+		degrees[i] = pow(degrees[i], -0.5f);
 		bool found = false;
 		for (int j = 0; j < adj_list[i].size(); ++j) {
 			if (adj_list[i][j] == i) {
@@ -81,13 +82,7 @@ Graph<T>::Graph(std::vector<std::vector<size_t>>& adj_list) {
 			}
 		}
 		if (!found) {
-			degrees[i] = (adj_list[i].size()+1);
-			degrees[i] = pow(degrees[i], -0.5f);
 			num_edges++;
-		}
-		else {
-			degrees[i] = (adj_list[i].size());
-			degrees[i] = pow(degrees[i], -0.5f);
 		}
 	}
 	for (int i = 0; i < num_nodes; ++i) {
@@ -100,18 +95,20 @@ Graph<T>::Graph(std::vector<std::vector<size_t>>& adj_list) {
 	}
 	std::cin.get();
 	float* adj_matrix = new float[num_edges];
-	int* rowIndices = new int[num_nodes+1];
+	//int* rowIndices = new int[num_nodes+1];
+	int* rowIndices = new int[num_edges];
 	int* colIndices = new int[num_edges];
 	std::cout << num_edges << std::endl;
 	int k = 0;
 	for (int i = 0; i < num_nodes; ++i) {
 		bool found = false;
-		rowIndices[i] = k;
+		//rowIndices[i] = k;
 		for (int j = 0; j < adj_list[i].size(); ++j) {
 			if (adj_list[i][j] == i) {
 				found = true;
 				adj_matrix[k] = 2*degrees[i]*degrees[adj_list[i][j]];
 				colIndices[k] = adj_list[i][j];
+				rowIndices[k] = i;
 				++k;
 				continue;
 			}
@@ -119,15 +116,18 @@ Graph<T>::Graph(std::vector<std::vector<size_t>>& adj_list) {
 				found = true;
 				adj_matrix[k] = degrees[i]*degrees[i];
 				colIndices[k] = i;
+				rowIndices[k] = i;
 				++k;
 			}
 			adj_matrix[k] = degrees[i]*degrees[adj_list[i][j]];
 			colIndices[k] = adj_list[i][j];
+			rowIndices[k] = i;
 			++k;
 		}
 		if (! found) {
 			adj_matrix[k] = degrees[i]*degrees[i];
 			colIndices[k] = i;
+			rowIndices[k] = i;
 			++k;
 		}
 	}
@@ -138,16 +138,21 @@ Graph<T>::Graph(std::vector<std::vector<size_t>>& adj_list) {
 	std::cout << std::endl;
 
 
-	rowIndices[num_nodes] = num_edges;
+	//rowIndices[num_nodes] = num_edges;
+	std::cout << "k: " << k << " " << num_edges << std::endl;
+	std::cin.get();
 
 	auto err = cudaMalloc(&data, num_edges*sizeof(T));
 	if (err) {
 		throw err;
 	}
+	//err = cudaMalloc(&rowInd, (num_nodes+1)*sizeof(int));
 	err = cudaMalloc(&rowInd, (num_nodes+1)*sizeof(int));
 	if (err) {
 		throw err;
 	}
+	int* rowInd_tmp;
+	cudaMalloc(&rowInd_tmp, num_edges*sizeof(int));
 	err = cudaMalloc(&colInd, num_edges*sizeof(int));
 	if (err) {
 		throw err;
@@ -157,7 +162,8 @@ Graph<T>::Graph(std::vector<std::vector<size_t>>& adj_list) {
 	if (err) {
 		throw err;
 	}
-	err = cudaMemcpy(rowInd, rowIndices, sizeof(int)*(num_nodes+1), cudaMemcpyHostToDevice);
+	//err = cudaMemcpy(rowInd, rowIndices, sizeof(int)*(num_nodes+1), cudaMemcpyHostToDevice);
+	err = cudaMemcpy(rowInd_tmp, rowIndices, sizeof(int)*num_edges, cudaMemcpyHostToDevice);
 	if (err) {
 		throw err;
 	}
@@ -165,6 +171,14 @@ Graph<T>::Graph(std::vector<std::vector<size_t>>& adj_list) {
 	if (err) {
 		throw err;
 	}
+
+	cusparseXcoo2csr(handle, rowInd_tmp, num_edges, num_nodes, rowInd, CUSPARSE_INDEX_BASE_ZERO);
+	auto err2 = cudaDeviceSynchronize();
+	if (err2) {
+		std::cout << "error: " << err2 << std::endl;
+		throw err2;
+	}
+	cudaFree(rowInd_tmp);
 
 	delete[] adj_matrix;
 	delete[] rowIndices;

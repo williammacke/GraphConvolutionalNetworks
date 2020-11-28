@@ -77,7 +77,9 @@ struct dsoftmax {
 	Matrix<T>& operator()(cublasHandle_t handle, const Matrix<T>& d, const Matrix<T>& p, Matrix<T>& out, float *tmp) const {
 		size_t n = p.getN()*p.getM();
 		elementWiseApply<<<(n+TPB-1)/TPB, TPB>>>(p.getData(), tmp, n, os);
+		cudaDeviceSynchronize();
 		elementWiseMul<<<(n+TPB-1)/TPB, TPB>>>(p.getData(), tmp, out.getData(), n);
+		cudaDeviceSynchronize();
 		return out;
 	}
 };
@@ -94,34 +96,23 @@ struct softmax {
 		if (ones != nullptr) {
 			cudaFree(ones);
 		}
-		const size_t bytes = sizeof(float)*newCap;
-		std::cout << "new cap " << newCap <<  std::endl;
-		std::cout << ones << std::endl;
 		cudaError_t err;
-		err = cudaMalloc(&ones, bytes);
+		err = cudaMalloc(&ones, sizeof(float)*newCap);
 		if (err) {
+			std::cout << "Error malloc: " << err << std::endl;
 			throw err;
 		}
-		std::cout << ones << std::endl;
-		std::cout << "Error malloc: " << err << std::endl;
-		//float* hOnes = new float[newCap+2];
-		float hOnes[newCap];
-		//err = cudaMemcpy(hOnes, ones, bytes, cudaMemcpyDeviceToHost);
-		err = cudaMemcpy(hOnes, ones, bytes, cudaMemcpyDeviceToHost);
-		if (err) {
-			std::cout << "test" << std::endl;
-			throw err;
-		}
+		float* hOnes = new float[newCap];
 		for (int i =0; i < newCap; ++i) {
 			hOnes[i] = 1.0f;
 		}
-		err = cudaMemcpy(ones, hOnes, sizeof(float)*newCap, cudaMemcpyDefault);
+		err = cudaMemcpy(ones, hOnes, sizeof(float)*newCap, cudaMemcpyHostToDevice);
 		if (err) {
 			std::cout << "Error: " << err << std::endl;
 			throw err;
 		}
 		cap_ones = newCap;
-		//delete[] hOnes;
+		delete[] hOnes;
 	}
 	void reallocSum(size_t newCap) {
 		if (sum != nullptr) {
@@ -143,15 +134,18 @@ struct softmax {
 			reallocOnes(mat.getM());
 		}
 		matApply(mat, mat, sexp);
+		cudaDeviceSynchronize();
 		float alpha = 1.0f;
 		float beta = 0.0f;
 		cublasSgemv(handle, CUBLAS_OP_N, mat.getN(), mat.getM(), &alpha,
 				mat.getData(), mat.getN(), ones, 1, &beta,
 				sum, 1);
+		cudaDeviceSynchronize();
 		size_t n = mat.getN()*mat.getM();
 
 		//elementWiseApply<<<(n+TPB-1)/TPB, TPB>>>(sum, sum, mat.getN(), ae);
 		rowWiseDiv<<<(n+TPB-1)/TPB, TPB>>>(mat.getData(), sum, mat.getData(), mat.getN(), mat.getM());
+		cudaDeviceSynchronize();
 		return mat;
 
 	}

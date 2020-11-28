@@ -12,7 +12,7 @@ struct gradient_descent_optimizer {
 	void optimize(cusparseHandle_t sHandle, cublasHandle_t bHandle,
 			GCNLayer<I, Op>& layer, const Matrix<float>& d, const Graph<float>& g) {
 		Matrix<float>& grad = layer.backward(sHandle, bHandle, d, g);
-		add(bHandle, grad, layer.getW(), lr);
+		add(bHandle, grad, layer.getW(), -lr);
 
 	}
 };
