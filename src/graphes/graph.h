@@ -22,6 +22,8 @@ private:
 	int* colInd;
 	size_t num_nodes;
 	size_t num_edges;
+	int nnzb;
+	int block_dim;
 	cusparseMatDescr_t descr;
 public:
 	const T* getData() const {
@@ -46,6 +48,13 @@ public:
 
 	const cusparseMatDescr_t& getDescr() const {
 		return descr;
+	}
+	int getNNZB() const {
+		return nnzb;
+	}
+
+	int getBlockDim() const {
+		return block_dim;
 	}
 
 };
@@ -142,23 +151,27 @@ Graph<T>::Graph(std::vector<std::vector<size_t>>& adj_list, cusparseHandle_t han
 	std::cout << "k: " << k << " " << num_edges << std::endl;
 	std::cin.get();
 
-	auto err = cudaMalloc(&data, num_edges*sizeof(T));
+	float* data_tmp;
+
+	auto err = cudaMalloc(&data_tmp, num_edges*sizeof(T));
 	if (err) {
 		throw err;
 	}
 	//err = cudaMalloc(&rowInd, (num_nodes+1)*sizeof(int));
-	err = cudaMalloc(&rowInd, (num_nodes+1)*sizeof(int));
+	float* rowInd_tmp2;
+	err = cudaMalloc(&rowInd_tmp2, (num_nodes+1)*sizeof(int));
 	if (err) {
 		throw err;
 	}
 	int* rowInd_tmp;
 	cudaMalloc(&rowInd_tmp, num_edges*sizeof(int));
-	err = cudaMalloc(&colInd, num_edges*sizeof(int));
+	float* colInd_tmp;
+	err = cudaMalloc(&colInd_tmp, num_edges*sizeof(int));
 	if (err) {
 		throw err;
 	}
 
-	err = cudaMemcpy(data, adj_matrix, sizeof(T)*num_edges, cudaMemcpyHostToDevice);
+	err = cudaMemcpy(data_tmp, adj_matrix, sizeof(T)*num_edges, cudaMemcpyHostToDevice);
 	if (err) {
 		throw err;
 	}
@@ -167,18 +180,37 @@ Graph<T>::Graph(std::vector<std::vector<size_t>>& adj_list, cusparseHandle_t han
 	if (err) {
 		throw err;
 	}
-	err = cudaMemcpy(colInd, colIndices, sizeof(int)*num_edges, cudaMemcpyHostToDevice);
+	err = cudaMemcpy(colInd_tmp, colIndices, sizeof(int)*num_edges, cudaMemcpyHostToDevice);
 	if (err) {
 		throw err;
 	}
 
-	cusparseXcoo2csr(handle, rowInd_tmp, num_edges, num_nodes, rowInd, CUSPARSE_INDEX_BASE_ZERO);
+	cusparseXcoo2csr(handle, rowInd_tmp, num_edges, num_nodes, rowInd_tmp2, CUSPARSE_INDEX_BASE_ZERO);
 	auto err2 = cudaDeviceSynchronize();
 	if (err2) {
 		std::cout << "error: " << err2 << std::endl;
 		throw err2;
 	}
 	cudaFree(rowInd_tmp);
+
+
+	//int base, nnzb;
+	block_dim = std::min(num_nodes, 16);
+	int mb = (num_nodes+block_dim-1)/block_dim;
+
+	cudaMalloc(&rowInd, sizeof(int)*(mb+1));
+
+	cusparseXcsr2bsrNnz(handle, CUSPARSE_DIRECTION_ROW, num_nodes, num_nodes, descr, rowInd_tmp2, colInd_tmp, block_dim, 
+			descr, rowInd, &nnzb);
+
+	cudaMalloc(&colInd, sizeof(int)*nnzb);
+	cudamalloc(&data, sizeof(T)*block_dim*block_dim*nnzb);
+	cusparseScsr2bsr(handle, CUSPARSE_DIRECTION_ROW, num_nodes, num_nodes, descr, data_tmp,
+			rowInd_tmp2, colInd_tmp, block_dim, descr,
+			data, rowInd, colInd);
+	cudaFree(rowInd_tmp2);
+	cudaFree(data_tmp);
+	cudaFree(colInd_tmp);
 
 	delete[] adj_matrix;
 	delete[] rowIndices;
