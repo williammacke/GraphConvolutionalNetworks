@@ -24,6 +24,7 @@ private:
 	size_t num_edges;
 	int nnzb;
 	int block_dim;
+	int mb;
 	cusparseMatDescr_t descr;
 public:
 	const T* getData() const {
@@ -55,6 +56,9 @@ public:
 
 	int getBlockDim() const {
 		return block_dim;
+	}
+	int getMB() const {
+		return mb;
 	}
 
 };
@@ -196,12 +200,14 @@ Graph<T>::Graph(std::vector<std::vector<size_t>>& adj_list, cusparseHandle_t han
 
 	//int base, nnzb;
 	block_dim = std::min((int) num_nodes, 16);
-	int mb = (num_nodes+block_dim-1)/block_dim;
+	mb = (num_nodes+block_dim-1)/block_dim;
 
 	cudaMalloc(&rowInd, sizeof(int)*(mb+1));
 
 	cusparseXcsr2bsrNnz(handle, CUSPARSE_DIRECTION_COLUMN, num_nodes, num_nodes, descr, rowInd_tmp2, colInd_tmp, block_dim, 
 			descr, rowInd, &nnzb);
+	std::cout << "NNZB: " << nnzb << std::endl;
+	std::cin.get();
 
 	cudaMalloc(&colInd, sizeof(int)*nnzb);
 	cudaMalloc(&data, sizeof(T)*block_dim*block_dim*nnzb);
