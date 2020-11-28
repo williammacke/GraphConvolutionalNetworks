@@ -50,6 +50,7 @@ int main() {
 
 	content.close();
 	std::vector<std::vector<size_t>> adj_list(numPapers);
+	std::vector<std::unordered_set<size_t>> adj_set(numPapers);
 	std::ifstream cites("../data/citeseer/citeseer.cites");
 
 
@@ -62,7 +63,14 @@ int main() {
 		int i1 = id_map[id1];
 		int i2 = id_map[id2];
 
-		adj_list[i1].push_back(i2);
+		if (adj_set[i1].find(i2) == adj_set[i1].end()) {
+			adj_list[i1].push_back(i2);
+			adj_set[i1].insert(i2);
+		}
+		if (adj_set[i2].find(i1) == adj_set[i2].end()) {
+			adj_list[i2].push_back(i1);
+			adj_set[i2].insert(i1);
+		}
 	}
 
 	cites.close();
@@ -95,6 +103,11 @@ int main() {
 		}
 		std::cout << std::endl;
 
+	}
+	for (int i = 0; i < 10; ++i) {
+		std::cout << network.getLoss() << std::endl;
+		std::cin.get();
+		network.train(10, features);
 	}
 
 	delete[] data;

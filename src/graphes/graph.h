@@ -108,20 +108,20 @@ Graph<T>::Graph(std::vector<std::vector<size_t>>& adj_list, cusparseHandle_t han
 	}
 	std::cin.get();
 	float* adj_matrix = new float[num_edges];
-	//int* rowIndices = new int[num_nodes+1];
-	int* rowIndices = new int[num_edges];
+	int* rowIndices = new int[num_nodes+1];
+	//int* rowIndices = new int[num_edges];
 	int* colIndices = new int[num_edges];
 	std::cout << num_edges << std::endl;
 	int k = 0;
 	for (int i = 0; i < num_nodes; ++i) {
 		bool found = false;
-		//rowIndices[i] = k;
+		rowIndices[i] = k;
 		for (int j = 0; j < adj_list[i].size(); ++j) {
 			if (adj_list[i][j] == i) {
 				found = true;
 				adj_matrix[k] = 2*degrees[i]*degrees[adj_list[i][j]];
 				colIndices[k] = adj_list[i][j];
-				rowIndices[k] = i;
+				//rowIndices[k] = i;
 				++k;
 				continue;
 			}
@@ -129,94 +129,48 @@ Graph<T>::Graph(std::vector<std::vector<size_t>>& adj_list, cusparseHandle_t han
 				found = true;
 				adj_matrix[k] = degrees[i]*degrees[i];
 				colIndices[k] = i;
-				rowIndices[k] = i;
+				//rowIndices[k] = i;
 				++k;
 			}
 			adj_matrix[k] = degrees[i]*degrees[adj_list[i][j]];
 			colIndices[k] = adj_list[i][j];
-			rowIndices[k] = i;
+			//rowIndices[k] = i;
 			++k;
 		}
 		if (! found) {
 			adj_matrix[k] = degrees[i]*degrees[i];
 			colIndices[k] = i;
-			rowIndices[k] = i;
+			//rowIndices[k] = i;
 			++k;
 		}
 	}
+	rowIndices[num_nodes] = num_edges;
 
 	for (int i = 0; i < num_edges; ++i) {
 		std::cout << adj_matrix[i] << " ";
 	}
 	std::cout << std::endl;
+	
+	auto err = cudaMalloc(&data, sizeof(T)*num_edges);
+	if (err) {
+		throw err;
+	}
+	err = cudaMalloc(&rowInd, sizeof(int)*(num_nodes+1));
+	if (err) {
+		throw err;
+	}
+	err = cudaMalloc(&colInd, sizeof(int)*num_edges);
+	if (err) {
+		throw err;
+	}
+
+	cudaMemcpy(data, adj_matrix, sizeof(T)*num_edges, cudaMemcpyHostToDevice);
+	cudaMemcpy(rowInd, rowIndices, sizeof(int)*(num_nodes+1), cudaMemcpyHostToDevice);
+	cudaMemcpy(colInd, colIndices, sizeof(int)*num_edges, cudaMemcpyHostToDevice);
 
 
 	//rowIndices[num_nodes] = num_edges;
 	std::cout << "k: " << k << " " << num_edges << std::endl;
-	std::cin.get();
-
-	float* data_tmp;
-
-	auto err = cudaMalloc(&data_tmp, num_edges*sizeof(T));
-	if (err) {
-		throw err;
-	}
-	//err = cudaMalloc(&rowInd, (num_nodes+1)*sizeof(int));
-	int* rowInd_tmp2;
-	err = cudaMalloc(&rowInd_tmp2, (num_nodes+1)*sizeof(int));
-	if (err) {
-		throw err;
-	}
-	int* rowInd_tmp;
-	cudaMalloc(&rowInd_tmp, num_edges*sizeof(int));
-	int* colInd_tmp;
-	err = cudaMalloc(&colInd_tmp, num_edges*sizeof(int));
-	if (err) {
-		throw err;
-	}
-
-	err = cudaMemcpy(data_tmp, adj_matrix, sizeof(T)*num_edges, cudaMemcpyHostToDevice);
-	if (err) {
-		throw err;
-	}
-	//err = cudaMemcpy(rowInd, rowIndices, sizeof(int)*(num_nodes+1), cudaMemcpyHostToDevice);
-	err = cudaMemcpy(rowInd_tmp, rowIndices, sizeof(int)*num_edges, cudaMemcpyHostToDevice);
-	if (err) {
-		throw err;
-	}
-	err = cudaMemcpy(colInd_tmp, colIndices, sizeof(int)*num_edges, cudaMemcpyHostToDevice);
-	if (err) {
-		throw err;
-	}
-
-	cusparseXcoo2csr(handle, rowInd_tmp, num_edges, num_nodes, rowInd_tmp2, CUSPARSE_INDEX_BASE_ZERO);
-	auto err2 = cudaDeviceSynchronize();
-	if (err2) {
-		std::cout << "error: " << err2 << std::endl;
-		throw err2;
-	}
-	cudaFree(rowInd_tmp);
-
-
-	//int base, nnzb;
-	block_dim = std::min((int) num_nodes, 16);
-	mb = (num_nodes+block_dim-1)/block_dim;
-
-	cudaMalloc(&rowInd, sizeof(int)*(mb+1));
-
-	cusparseXcsr2bsrNnz(handle, CUSPARSE_DIRECTION_COLUMN, num_nodes, num_nodes, descr, rowInd_tmp2, colInd_tmp, block_dim, 
-			descr, rowInd, &nnzb);
-	std::cout << "NNZB: " << nnzb << std::endl;
-	std::cin.get();
-
-	cudaMalloc(&colInd, sizeof(int)*nnzb);
-	cudaMalloc(&data, sizeof(T)*block_dim*block_dim*nnzb);
-	cusparseScsr2bsr(handle, CUSPARSE_DIRECTION_COLUMN, num_nodes, num_nodes, descr, data_tmp,
-			rowInd_tmp2, colInd_tmp, block_dim, descr,
-			data, rowInd, colInd);
-	cudaFree(rowInd_tmp2);
-	cudaFree(data_tmp);
-	cudaFree(colInd_tmp);
 
 	delete[] adj_matrix;
 	delete[] rowIndices;

@@ -47,23 +47,23 @@ public:
 	}
 
 	Matrix<float>& backward(cusparseHandle_t sHandle, cublasHandle_t handle, const Matrix<float>& in, const Graph<float>& g) {
-		std::cout << "initial" << std::endl;
-		printMat(in);
-		printMat(W);
-		printMat(d);
-		printMat(out);
+		//std::cout << "initial" << std::endl;
+		//printMat(in);
+		//printMat(W);
+		//printMat(d);
+		//printMat(out);
 		op.derivative(handle, d, out, d);
-		std::cout << "grad" << std::endl;
-		printMat(d);
+		//std::cout << "grad" << std::endl;
+		//printMat(d);
 		matElementMul(in, d, d);
-		printMat(d);
-		matMul(handle, XA, d, grad, true);
-		printMat(grad);
+		//printMat(d);
+		//matMul(handle, XA, d, grad, true);
+		//printMat(grad);
 		std::cout << "grad done" << std::endl;
 		matMul(handle, d, W, next, false, true);
-		printMat(next);
+		//printMat(next);
 		sparseMatMul(sHandle, g, next, next);
-		printMat(next);
+		//printMat(next);
 		return grad;
 	}
 

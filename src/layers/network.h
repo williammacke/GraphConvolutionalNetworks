@@ -71,6 +71,11 @@ public:
 	void setLabels(float* labels) {
 		y.setValues(labels);
 	}
+	
+	float getLoss() {
+		constexpr size_t last = sizeof...(Layers)-1;
+		return loss(bhandle, std::get<last>(layers).getOut(), y);
+	}
 private:
 	std::tuple<Layers...> layers;
 	Trainer trainer;
