@@ -158,14 +158,14 @@ Graph<T>::Graph(std::vector<std::vector<size_t>>& adj_list, cusparseHandle_t han
 		throw err;
 	}
 	//err = cudaMalloc(&rowInd, (num_nodes+1)*sizeof(int));
-	float* rowInd_tmp2;
+	int* rowInd_tmp2;
 	err = cudaMalloc(&rowInd_tmp2, (num_nodes+1)*sizeof(int));
 	if (err) {
 		throw err;
 	}
 	int* rowInd_tmp;
 	cudaMalloc(&rowInd_tmp, num_edges*sizeof(int));
-	float* colInd_tmp;
+	int* colInd_tmp;
 	err = cudaMalloc(&colInd_tmp, num_edges*sizeof(int));
 	if (err) {
 		throw err;
@@ -195,17 +195,17 @@ Graph<T>::Graph(std::vector<std::vector<size_t>>& adj_list, cusparseHandle_t han
 
 
 	//int base, nnzb;
-	block_dim = std::min(num_nodes, 16);
+	block_dim = std::min((int) num_nodes, 16);
 	int mb = (num_nodes+block_dim-1)/block_dim;
 
 	cudaMalloc(&rowInd, sizeof(int)*(mb+1));
 
-	cusparseXcsr2bsrNnz(handle, CUSPARSE_DIRECTION_ROW, num_nodes, num_nodes, descr, rowInd_tmp2, colInd_tmp, block_dim, 
+	cusparseXcsr2bsrNnz(handle, CUSPARSE_DIRECTION_COLUMN, num_nodes, num_nodes, descr, rowInd_tmp2, colInd_tmp, block_dim, 
 			descr, rowInd, &nnzb);
 
 	cudaMalloc(&colInd, sizeof(int)*nnzb);
-	cudamalloc(&data, sizeof(T)*block_dim*block_dim*nnzb);
-	cusparseScsr2bsr(handle, CUSPARSE_DIRECTION_ROW, num_nodes, num_nodes, descr, data_tmp,
+	cudaMalloc(&data, sizeof(T)*block_dim*block_dim*nnzb);
+	cusparseScsr2bsr(handle, CUSPARSE_DIRECTION_COLUMN, num_nodes, num_nodes, descr, data_tmp,
 			rowInd_tmp2, colInd_tmp, block_dim, descr,
 			data, rowInd, colInd);
 	cudaFree(rowInd_tmp2);
