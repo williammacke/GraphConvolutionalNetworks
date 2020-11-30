@@ -38,8 +38,9 @@ public:
 		//std::cout << "forward" << std::endl;
 		//printMat(in);
 		std::cout << "test1" << std::endl;
-		matMul(bHandle, XA, W, d);
-		cudaDeviceSynchronize();
+		//matMul(bHandle, XA, W, d);
+		//cudaDeviceSynchronize();
+		matMul_Add(bHandle, XA, W, B, d);
 		out.gpuSetValues(d.getData());
 		op(bHandle, out);
 		//printMat(out);

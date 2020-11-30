@@ -25,8 +25,8 @@ int main() {
 	GCNLayer<random_normal_init, relu> layer1("l1", 3, 2, 2, relu(), random_normal_init(0, 0.01));
 	GCNLayer<random_normal_init, softmax> layer2("l2", 3, 2, 2, softmax(), random_normal_init(0, 0.01));
 
-	//Network<cross_entropy_with_logits, gradient_descent_optimizer, GCNLayer<random_normal_init, relu>, GCNLayer<random_normal_init, softmax>> network(3, 2, {}, gradient_descent_optimizer(0.01f), handle, sparseHandle, layer1, layer2);
-	Network<cross_entropy_with_logits, gradient_descent_optimizer,  GCNLayer<random_normal_init, softmax>> network(3, 2, {}, gradient_descent_optimizer(0.1f), handle, sparseHandle, layer2);
+	Network<cross_entropy_with_logits, gradient_descent_optimizer, GCNLayer<random_normal_init, relu>, GCNLayer<random_normal_init, softmax>> network(3, 2, {}, gradient_descent_optimizer(0.01f), handle, sparseHandle, layer1, layer2);
+	//Network<cross_entropy_with_logits, gradient_descent_optimizer,  GCNLayer<random_normal_init, softmax>> network(3, 2, {}, gradient_descent_optimizer(0.1f), handle, sparseHandle, layer2);
 	network.setGraph(&g);
 	network.setLabels(labels);
 

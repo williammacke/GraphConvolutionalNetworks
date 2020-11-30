@@ -9,6 +9,20 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <iostream>
+#include <cstdlib>
+
+size_t argmax(float* data, size_t n) {
+	float m = data[0];
+	size_t mi = 0;
+	for (int i = 0; i < n; ++i) {
+		if (data[i] > m) {
+			m = data[i];
+			mi = i;
+		}
+	}
+	return mi;
+
+}
 
 int main() {
 	cublasHandle_t handle;
@@ -32,20 +46,34 @@ int main() {
 
 	float* data = new float[numPapers*numWords];
 	float* labels = new float[numPapers*6];
+	float* labels2 = new float[numPapers*6];
 	for (int i = 0; i < numPapers*6; ++i) {
 		labels[i] = 0;
+		labels2[i] = 0;
 	}
 
+	std::vector<size_t> test;
 
 	for (int i = 0; i < numPapers; ++i) {
 		content >> ids[i];
 		id_map[ids[i]] = i;
+		float sum = 0.0f;
 		for (int j = 0; j < numWords; ++j) {
 			content >> data[j*numPapers+i];
+			sum += data[j*numPapers+i];
+		}
+		for (int j = 0; j < numWords; ++j) {
+			data[j*numPapers+i] /= sum;
 		}
 		content >> label;
 		int li = label_map[label];
-		labels[li*numPapers+i] = 1.0f;
+		if (rand() %10 != 0) {
+			labels[li*numPapers+i] = 1.0f;
+		}
+		else {
+			labels2[li*numPapers+i] = 1.0f;
+			test.push_back(i);
+		}
 	}
 
 	content.close();
@@ -82,13 +110,13 @@ int main() {
 	Graph<float> g(adj_list, sparseHandle);
 	std::cin.get();
 
-	GCNLayer<random_normal_init, relu> layer1("l1", numPapers, numWords, 100, relu(),
-			random_normal_init(0, 0.1));
-	GCNLayer<random_normal_init, softmax> layer2("l2", numPapers, 100, 6, softmax(),
+	GCNLayer<random_normal_init, relu> layer1("l1", numPapers, numWords, 32, relu(),
+			random_normal_init(0, 0.01));
+	GCNLayer<random_normal_init, softmax> layer2("l2", numPapers, 32, 6, softmax(),
 			random_normal_init(0, 0.1));
 
 
-	Network<cross_entropy_with_logits, gradient_descent_optimizer, GCNLayer<random_normal_init, relu>, GCNLayer<random_normal_init, softmax>> network(numPapers, 6, {}, gradient_descent_optimizer(0.0001f), handle, sparseHandle, layer1, layer2);
+	Network<cross_entropy_with_logits, gradient_descent_optimizer, GCNLayer<random_normal_init, relu>, GCNLayer<random_normal_init, softmax>> network(numPapers, 6, {}, gradient_descent_optimizer(0.01f), handle, sparseHandle, layer1, layer2);
 	network.setGraph(&g);
 	network.setLabels(labels);
 
@@ -104,8 +132,27 @@ int main() {
 		std::cout << std::endl;
 
 	}
-	for (int i = 0; i < 10; ++i) {
+	for (int i = 0; i < 20; ++i) {
+		cudaMemcpy(result, network.result(features).getData(), sizeof(float)*6*numPapers, cudaMemcpyDeviceToHost);
+		float l[6];
+		float l_[6];
+		float total = 0.0f;
+		float correct = 0.0f;
+		for (auto& t:test) {
+			for (int j = 0; j < 6; ++j) {
+				l[j] = labels2[j*numPapers+t];
+				l_[j] = result[j*numPapers+t];
+			}
+			if (argmax(l, 6) == argmax(l_, 6)) {
+				correct += 1;
+			}
+			total += 1;
+		}
 		std::cout << network.getLoss() << std::endl;
+		network.setLabels(labels2);
+		std::cout << network.getLoss() << std::endl;
+		network.setLabels(labels);
+		std::cout << "Acc: " << (correct/total) << std::endl;
 		std::cin.get();
 		network.train(10, features);
 	}

@@ -20,8 +20,6 @@ struct dcross_entropy_with_logits {
 	Matrix<T>& operator()(cublasHandle_t handle, const Matrix<T>& y, const Matrix<T>& y_, Matrix<T>& out, float* tmp1, float* ones) const {
 		size_t n = y.getN()*y.getM();
 		elementWiseApply<<<(n+TPB-1)/TPB, TPB>>>(y.getData(), tmp1, n, os);
-		cudaDeviceSynchronize();
-
 		elementWiseApply<<<(n+TPB-1)/TPB, TPB>>>(y_.getData(), out.getData(), n, ose);
 		cudaDeviceSynchronize();
 		elementWiseDiv<<<(n+TPB-1)/TPB, TPB>>>(tmp1, out.getData(), out.getData(), n);
@@ -39,7 +37,8 @@ struct dcross_entropy_with_logits {
 		cublasSgemv(handle, CUBLAS_OP_N, y.getN(), y.getM(),
 				&alpha, y.getData(), y.getN(),
 				ones, 1, &beta, tmp1, 1);
-		//rowWiseMul<<<(n+TPB-1)/TPB, TPB>>>(out.getData(), tmp1, out.getData(), out.getN(), out.getM());
+		rowWiseMul<<<(n+TPB-1)/TPB, TPB>>>(out.getData(), tmp1, out.getData(), out.getN(), out.getM());
+		cudaDeviceSynchronize();
 		return out;
 	}
 };
@@ -120,16 +119,21 @@ struct cross_entropy_with_logits {
 
 		elementWiseApply<<<(n+TPB-1)/TPB, TPB>>>(y_.getData(), tmp, n, os);
 		cudaDeviceSynchronize();
+
 		elementWiseApply<<<(n+TPB-1)/TPB, TPB>>>(tmp, tmp, n, sl);
 		cudaDeviceSynchronize();
+
 		elementWiseApply<<<(n+TPB-1)/TPB, TPB>>>(y.getData(), tmp2, n, os);
 		cudaDeviceSynchronize();
-		elementWiseApply<<<(n+TPB-1)/TPB, TPB>>>(tmp2, tmp2, n, sl);
-		cudaDeviceSynchronize();
+
+		//elementWiseApply<<<(n+TPB-1)/TPB, TPB>>>(tmp2, tmp2, n, sl);
+		//cudaDeviceSynchronize();
+
 		elementWiseMul<<<(n+TPB-1)/TPB, TPB>>>(tmp, tmp2, tmp, n);
+		cudaDeviceSynchronize();
 
 
-		elementWiseApply<<<(n+TPB-1)/TPB, TPB>>>(y_.getData(), tmp2, n, sl);
+		elementWiseApply<<<(n+TPB-1)/TPB, TPB>>>(y_.getData(), tmp2, n, sl); 
 		cudaDeviceSynchronize();
 		elementWiseMul<<<(n+TPB-1)/TPB, TPB>>>(y.getData(), tmp2, tmp2, n);
 		cudaDeviceSynchronize();
