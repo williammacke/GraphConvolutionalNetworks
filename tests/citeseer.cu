@@ -67,8 +67,9 @@ int main() {
 		}
 		content >> label;
 		int li = label_map[label];
-		if (rand() %10 != 0) {
+		if (rand() %2 == 0) {
 			labels[li*numPapers+i] = 1.0f;
+			//test.push_back(i);
 		}
 		else {
 			labels2[li*numPapers+i] = 1.0f;
@@ -110,10 +111,10 @@ int main() {
 	Graph<float> g(adj_list, sparseHandle);
 	std::cin.get();
 
-	GCNLayer<random_normal_init, relu> layer1("l1", numPapers, numWords, 32, relu(),
+	GCNLayer<random_normal_init, relu> layer1("l1", numPapers, numWords, 16, relu(),
 			random_normal_init(0, 0.01));
-	GCNLayer<random_normal_init, softmax> layer2("l2", numPapers, 32, 6, softmax(),
-			random_normal_init(0, 0.1));
+	GCNLayer<random_normal_init, softmax> layer2("l2", numPapers, 16, 6, softmax(),
+			random_normal_init(0, 0.1), -1);
 
 
 	Network<cross_entropy_with_logits, gradient_descent_optimizer, GCNLayer<random_normal_init, relu>, GCNLayer<random_normal_init, softmax>> network(numPapers, 6, {}, gradient_descent_optimizer(0.01f), handle, sparseHandle, layer1, layer2);
@@ -133,7 +134,7 @@ int main() {
 
 	}
 	for (int i = 0; i < 20; ++i) {
-		cudaMemcpy(result, network.result(features).getData(), sizeof(float)*6*numPapers, cudaMemcpyDeviceToHost);
+		cudaMemcpy(result, network.result(features, false).getData(), sizeof(float)*6*numPapers, cudaMemcpyDeviceToHost);
 		float l[6];
 		float l_[6];
 		float total = 0.0f;
@@ -141,6 +142,7 @@ int main() {
 		for (auto& t:test) {
 			for (int j = 0; j < 6; ++j) {
 				l[j] = labels2[j*numPapers+t];
+				//l[j] = labels[j*numPapers+t];
 				l_[j] = result[j*numPapers+t];
 			}
 			if (argmax(l, 6) == argmax(l_, 6)) {

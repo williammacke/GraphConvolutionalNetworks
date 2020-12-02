@@ -11,7 +11,9 @@ add_library(gcn STATIC
 	functions/activations.cu
 	functions/loss.h
 	functions/loss.cu
-	optimization/gradient_descent.h)
+	optimization/gradient_descent.h
+	linAlg/random.h
+	linAlg/random.cu)
 
 target_compile_features(gcn PUBLIC cxx_std_11)
 target_include_directories(gcn PUBLIC ./)

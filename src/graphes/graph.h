@@ -106,7 +106,6 @@ Graph<T>::Graph(std::vector<std::vector<size_t>>& adj_list, cusparseHandle_t han
 		std::cout << std::endl;
 		std::cout << degrees[i] << std::endl;
 	}
-	std::cin.get();
 	float* adj_matrix = new float[num_edges];
 	int* rowIndices = new int[num_nodes+1];
 	//int* rowIndices = new int[num_edges];

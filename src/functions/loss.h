@@ -39,6 +39,10 @@ struct dcross_entropy_with_logits {
 				ones, 1, &beta, tmp1, 1);
 		rowWiseMul<<<(n+TPB-1)/TPB, TPB>>>(out.getData(), tmp1, out.getData(), out.getN(), out.getM());
 		cudaDeviceSynchronize();
+		float total;
+		cublasSdot(handle, y.getN(), tmp1, 1, ones, 1, &total);
+		total = 1.0f/total;
+		//cublasSscal(handle, out.getN()*out.getM(), &total, out.getData(), 1);
 		return out;
 	}
 };
@@ -153,7 +157,7 @@ struct cross_entropy_with_logits {
 		if (err) {
 			throw err;
 		}
-		return result;
+		return -1*result;
 	}
 
 	template <class T>

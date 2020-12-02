@@ -19,9 +19,9 @@ public:
 	void setGraph(Graph<float>* graph) {
 		g = graph;
 	}
-	Matrix<float>& result(const Matrix<float>& in) {
+	Matrix<float>& result(const Matrix<float>& in, bool dropout = true) {
 		//std::cout << "layer 1" << std::endl;
-		std::get<0>(layers).forward(shandle, bhandle, *g, in); 
+		std::get<0>(layers).forward(shandle, bhandle, *g, in, dropout); 
 		//return std::get<0>(layers).getOut();
 		return result_helper<1>(in);
 	}
