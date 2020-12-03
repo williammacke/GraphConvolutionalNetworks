@@ -22,7 +22,10 @@ void printMat(const Matrix<float>& mat) {
 template <class I, class Op>
 class GCNLayer {
 public:
-	GCNLayer(std::string name, size_t num_nodes, size_t num_inputs, size_t num_outputs, const Op& op, const I& init, float dr=0.5) : name(name), W(num_inputs, num_outputs), 
+	GCNLayer(std::string name, size_t num_nodes, size_t num_inputs, size_t num_outputs,
+			 const Op& op, const I& init, float dr=0.5) :
+		name(name), W(num_inputs, num_outputs),
+		num_inputs(num_inputs), num_outputs(num_outputs), num_nodes(num_nodes),
 	B(num_nodes, num_outputs), d(num_nodes, num_outputs), init(init), op(op),
        XA(num_nodes, num_inputs), out(num_nodes, num_outputs),
 	grad(num_inputs, num_outputs), next(num_nodes, num_inputs),
@@ -122,7 +125,12 @@ public:
 		return B;
 	}
 
+	std::string getName() {
+		return name;
+	}
 
+	size_t num_inputs, num_outputs;
+	size_t num_nodes;
 private:
 	std::string name;
 	Matrix<float> W;
