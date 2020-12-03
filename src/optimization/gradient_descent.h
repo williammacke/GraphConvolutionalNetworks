@@ -1,6 +1,8 @@
 #ifndef GRADIENT_DESCENT_H_
 #define GRADIENT_DESCENT_H_
 
+#include <unordered_map>
+
 #include "linAlg/matrix.h"
 
 //TODO: implement gradient descent optimizer
