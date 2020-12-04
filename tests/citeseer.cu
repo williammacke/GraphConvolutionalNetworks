@@ -16,8 +16,7 @@ size_t argmax(float* data, size_t n) {
 	size_t mi = 0;
 	for (int i = 0; i < n; ++i) {
 		if (data[i] > m) {
-			m = data[i];
-			mi = i;
+			m = data[i]; mi = i;
 		}
 	}
 	return mi;
@@ -47,6 +46,10 @@ int main() {
 	float* data = new float[numPapers*numWords];
 	float* labels = new float[numPapers*6];
 	float* labels2 = new float[numPapers*6];
+	int count[6];
+	for (int i =0; i < 6; ++i) {
+		count[i] = 0;
+	}
 	for (int i = 0; i < numPapers*6; ++i) {
 		labels[i] = 0;
 		labels2[i] = 0;
@@ -67,8 +70,9 @@ int main() {
 		}
 		content >> label;
 		int li = label_map[label];
-		if (rand() %2 == 0) {
+		if (count[li] < 20) {
 			labels[li*numPapers+i] = 1.0f;
+			++count[li];
 			//test.push_back(i);
 		}
 		else {
@@ -111,13 +115,13 @@ int main() {
 	Graph<float> g(adj_list, sparseHandle);
 	std::cin.get();
 
-	GCNLayer<random_normal_init, relu> layer1("l1", numPapers, numWords, 16, relu(),
+	GCNLayer<random_normal_init, relu> layer1("l1", numPapers, numWords, 32, relu(),
 			random_normal_init(0, 0.01));
-	GCNLayer<random_normal_init, softmax> layer2("l2", numPapers, 16, 6, softmax(),
+	GCNLayer<random_normal_init, softmax> layer2("l2", numPapers, 32, 6, softmax(),
 			random_normal_init(0, 0.1), -1);
 
 
-	Network<cross_entropy_with_logits, gradient_descent_optimizer, GCNLayer<random_normal_init, relu>, GCNLayer<random_normal_init, softmax>> network(numPapers, 6, {}, gradient_descent_optimizer(0.01f), handle, sparseHandle, layer1, layer2);
+	Network<cross_entropy_with_logits, adam, GCNLayer<random_normal_init, relu>, GCNLayer<random_normal_init, softmax>> network(numPapers, 6, {}, adam(), handle, sparseHandle, layer1, layer2);
 	network.setGraph(&g);
 	network.setLabels(labels);
 
