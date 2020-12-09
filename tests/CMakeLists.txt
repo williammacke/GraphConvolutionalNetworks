@@ -10,5 +10,8 @@ target_link_libraries(network PRIVATE gcn)
 add_executable(citeseer citeseer.cu)
 target_link_libraries(citeseer PRIVATE gcn)
 
+add_executable(pubmed pubmed.cu)
+target_link_libraries(pubmed PRIVATE gcn)
+
 add_executable(unit unit.cu)
 target_link_libraries(unit PRIVATE gcn)
