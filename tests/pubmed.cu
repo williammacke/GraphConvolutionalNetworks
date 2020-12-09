@@ -184,11 +184,11 @@ int main() {
 
 	GCNLayer<random_normal_init, relu> layer1("l1", numPapers, numWords, 32, relu(),
 			random_normal_init(0, 0.01));
-	GCNLayer<random_normal_init, softmax> layer2("l2", numPapers, 32, 6, softmax(),
+	GCNLayer<random_normal_init, softmax> layer2("l2", numPapers, 32, 3, softmax(),
 			random_normal_init(0, 0.1), -1);
 
 
-	Network<cross_entropy_with_logits, adam, GCNLayer<random_normal_init, relu>, GCNLayer<random_normal_init, softmax>> network(numPapers, 6, {}, adam(), handle, sparseHandle, layer1, layer2);
+	Network<cross_entropy_with_logits, adam, GCNLayer<random_normal_init, relu>, GCNLayer<random_normal_init, softmax>> network(numPapers, 3, {}, adam(), handle, sparseHandle, layer1, layer2);
 	network.setGraph(&g);
 	network.setLabels(labels);
 
