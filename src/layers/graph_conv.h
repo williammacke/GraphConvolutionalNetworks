@@ -67,8 +67,10 @@ public:
 			if (dr > 0) {
 				cublasSscal(bHandle, W.getN()*W.getM(),
 						&dr, grad.getData(), 1);
+				cudaDeviceSynchronize();
 				cublasSscal(bHandle, B.getN()*B.getM(),
 						&dr, out.getData(), 1);
+				cudaDeviceSynchronize();
 			}
 			matMul_Add(bHandle, XA, grad, out, d);
 			out.gpuSetValues(d.getData());

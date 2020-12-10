@@ -144,6 +144,7 @@ struct softmax {
 		size_t n = mat.getN()*mat.getM();
 
 		elementWiseApply<<<(n+TPB-1)/TPB, TPB>>>(sum, sum, mat.getN(), ae);
+		cudaDeviceSynchronize();
 		rowWiseDiv<<<(n+TPB-1)/TPB, TPB>>>(mat.getData(), sum, mat.getData(), mat.getN(), mat.getM());
 		cudaDeviceSynchronize();
 		return mat;

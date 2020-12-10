@@ -31,16 +31,20 @@ struct dcross_entropy_with_logits {
 		cudaDeviceSynchronize();
 		float alpha = -1;
 		cublasSscal(handle, n, &alpha, tmp1, 1);
+		cudaDeviceSynchronize();
 		alpha = 1.0f;
 		float beta = 0.0f;
 		cublasSaxpy(handle, n, &alpha, tmp1, 1, out.getData(), 1);
+		cudaDeviceSynchronize();
 		cublasSgemv(handle, CUBLAS_OP_N, y.getN(), y.getM(),
 				&alpha, y.getData(), y.getN(),
 				ones, 1, &beta, tmp1, 1);
+		cudaDeviceSynchronize();
 		rowWiseMul<<<(n+TPB-1)/TPB, TPB>>>(out.getData(), tmp1, out.getData(), out.getN(), out.getM());
 		cudaDeviceSynchronize();
 		float total;
 		cublasSdot(handle, y.getN(), tmp1, 1, ones, 1, &total);
+		cudaDeviceSynchronize();
 		total = 1.0f/total;
 		//cublasSscal(handle, out.getN()*out.getM(), &total, out.getData(), 1);
 		return out;
@@ -145,13 +149,17 @@ struct cross_entropy_with_logits {
 		float alpha=1.0f;
 		float beta=0.0f;
 		cublasSaxpy(handle, n, &alpha, tmp2, 1, tmp, 1);
+		cudaDeviceSynchronize();
 
 		cublasSgemv(handle, CUBLAS_OP_N, y.getN(), y.getM(), &alpha, tmp, y_.getN(), ones, 1, &beta, tmp2, 1);
+		cudaDeviceSynchronize();
 		cublasSgemv(handle, CUBLAS_OP_N, y.getN(), y.getM(), &alpha, y.getData(), y_.getN(), ones, 1, &beta, tmp, 1);
+		cudaDeviceSynchronize();
 		elementWiseMul<<<(n+TPB-1)/TPB, TPB>>>(tmp, tmp2, tmp, y.getN());
 		cudaDeviceSynchronize();
 
 		cublasSdot(handle, y.getN(), ones, 1, tmp, 1, tmp2);
+		cudaDeviceSynchronize();
 		float result;
 		auto err = cudaMemcpy(&result, tmp2, sizeof(float), cudaMemcpyDeviceToHost);
 		if (err) {

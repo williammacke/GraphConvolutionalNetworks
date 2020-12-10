@@ -106,6 +106,7 @@ struct adam {
         matElementMul(grad, grad, tmp);
         // Scale u by b2
         cublasSscal(bHandle, u.getM() * u.getN(), &adamParams.b2, u.getData(), 1);
+	cudaDeviceSynchronize();
         // ut[i] = b2 * ut[i] + (float_t(1) - b2) * dW[i] * dW[i];
         add(bHandle, tmp, u, float(1) - adamParams.b2);
 
@@ -116,11 +117,15 @@ struct adam {
         // mHat = m / (1 - b1_t)
         float alpha_ = float(1) / (1 - adamParams.b1_t);
         cublasScopy(bHandle, m.getM() * m.getN(), m.getData(), 1, mHat.getData(), 1);
+	cudaDeviceSynchronize();
         cublasSscal(bHandle, mHat.getM() * mHat.getN(), &alpha_, mHat.getData(), 1);
+	cudaDeviceSynchronize();
         // uHat = u / (1 - b2_t)
         alpha_ = float(1) / (1 - adamParams.b2_t);
         cublasScopy(bHandle, u.getM() * u.getN(), u.getData(), 1, uHat.getData(), 1);
+	cudaDeviceSynchronize();
         cublasSscal(bHandle, uHat.getM() * uHat.getN(), &alpha_, uHat.getData(), 1);
+	cudaDeviceSynchronize();
         // tmp = m_hat / (sqrt(u_hat) + eps)
         // tmp = sqrt(uHat)
         matApply(uHat, tmp, square_root{});
