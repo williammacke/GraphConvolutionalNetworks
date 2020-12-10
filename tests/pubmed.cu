@@ -198,7 +198,7 @@ int main() {
 	} catch(int i) { std::cout << "Error " << i << std::endl; }
 	for (int i = 0; i < numPapers; ++i) {
 		std::cout << ids[i] << " ";
-		for (int j = 0; j < 6; j++) {
+		for (int j = 0; j < 3; j++) {
 			std::cout << result[j*numPapers+i] << " ";
 		}
 		std::cout << std::endl;
