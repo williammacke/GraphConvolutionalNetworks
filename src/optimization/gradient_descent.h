@@ -30,7 +30,7 @@ struct gradient_descent_optimizer {
 			GCNLayer<I, Op>& layer, const Matrix<float>& d, const Graph<float>& g) {
 		Matrix<float>& grad = layer.backward(sHandle, bHandle, d, g);
 		add(bHandle, grad, layer.getW(), -lr);
-		//add(bHandle, layer.getD(), layer.getB(), -lr);
+		add(bHandle, layer.getD(), layer.getB(), -lr);
 
 	}
 };
@@ -154,7 +154,7 @@ struct adam {
         step(bHandle, grad, toApply, weightParams);
 
         // Simple gradient descent on biases does better than Adam
-        //add(bHandle, layer.getD(), layer.getB(), -alpha);
+        add(bHandle, layer.getD(), layer.getB(), -alpha);
 //      AdamParameters& biasParams = *mapping[biasName];
 //      Matrix<float>& biasGrad = layer.getD();
 //      Matrix<float>& a = layer.getB();

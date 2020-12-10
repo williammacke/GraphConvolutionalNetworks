@@ -26,12 +26,12 @@ public:
 			 const Op& op, const I& init, float dr=0.5) :
 		name(name), W(num_inputs, num_outputs),
 		num_inputs(num_inputs), num_outputs(num_outputs), num_nodes(num_nodes),
-	d(num_nodes, num_outputs), init(init), op(op),
+	B(num_nodes, num_outputs), d(num_nodes, num_outputs), init(init), op(op),
        XA(num_nodes, num_inputs), out(num_nodes, num_outputs),
 	grad(num_inputs, num_outputs), next(num_nodes, num_inputs),
 	DO(num_nodes, num_outputs), dr(dr) {
 		init.initialize(W, num_nodes, num_inputs, num_outputs);
-		//init.initialize(B, num_nodes, num_inputs, num_outputs);
+		init.initialize(B, num_nodes, num_inputs, num_outputs);
 		size_t n = num_nodes*num_outputs;
 		cudaMalloc(&randState, sizeof(curandState_t)*num_nodes*num_outputs);
 		initCurand<<<(n+TPB-1)/TPB, TPB>>>(randState, rand(), num_nodes*num_outputs);
@@ -54,8 +54,7 @@ public:
 		//matMul(bHandle, XA, W, d);
 		//cudaDeviceSynchronize();
 		if (dropout) {
-			//matMul_Add(bHandle, XA, W, B, d);
-			matMul(bHandle, XA, W, d);
+			matMul_Add(bHandle, XA, W, B, d);
 			out.gpuSetValues(d.getData());
 			op(bHandle, out);
 			randomize_mat(randState, DO, dr);
@@ -71,8 +70,7 @@ public:
 				cublasSscal(bHandle, B.getN()*B.getM(),
 						&dr, out.getData(), 1);
 			}
-			//matMul_Add(bHandle, XA, grad, out, d);
-			matMul(bHandle, XA, grad, d);
+			matMul_Add(bHandle, XA, grad, out, d);
 			out.gpuSetValues(d.getData());
 			op(bHandle, out);
 		}
@@ -136,6 +134,7 @@ public:
 private:
 	std::string name;
 	Matrix<float> W;
+	Matrix<float> B;
 	Matrix<float> XA, out, d;
 	Matrix<float> grad, next;
 	Matrix<float> DO;
